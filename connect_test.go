@@ -1,13 +1,16 @@
 package xmpp
 
 import (
-  "testing"
+	"fmt"
+	"testing"
 )
 
 func Test_NewClient(t *testing.T) {
-  var options = Options{
-    Host: "172.16.95.111",
-  }
+	var options = Options{
+		Host:     "192.168.204.131",
+		User:     "zeus@localhost",
+		Password: "totvs@123",
+	}
 
-  options.NewClient()
+	fmt.Println(NewClient(options))
 }
