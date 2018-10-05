@@ -9,6 +9,7 @@ import (
   "crypto/rand"
   "encoding/base64"
   "encoding/binary"
+  "strings"
   //"errors"
   "encoding/xml"
 
@@ -69,6 +70,7 @@ type Client struct {
 
 type Options struct {
   Host	    string
+  Port	    string
   User	    string
   Password  string
   Mechanism string
@@ -84,28 +86,49 @@ func getCookie() Cookie {
   return Cookie(binary.LittleEndian.Uint64(buf[:]))
 }
 
-func (o *Options) connect() (net.Conn, error) {
-  return net.Dial("tcp", o.Host + XMPP_DEFAULT_PORT)
+func connect(o Options) (net.Conn, error) {
+  var coon net.Conn
+
+  if o.User == "" || o.Password == "" {
+    return coon, errors.New("The Option's user and password is required")
+  }
+
+  if !strings.Contains(o.User, "@") {
+    return coon, errors.New("The format of user is equal the JID format \"user@domain/Resource\"")
+  }
+
+  if o.Host == "" {
+    return coon, errors.New("The Option's host is required")
+  }
+
+  if o.Port == "" {
+    o.Port = XMPP_DEFAULT_PORT
+  }
+
+  return net.Dial("tcp", fmt.Sprintf("%s:%s", o.Host, o.Port))
 }
 
-func (o *Options) NewClient() (*Client, error) {
+func NewClient(o Options) (*Client, error) {
   var (
     client	= new(Client)
     err		error
     conn	net.Conn
     sf		= new(streamFeatures)
     authBase64	[]byte
+    user	string
     //name	xml.Name
     //val		interface{}
   )
 
-  if conn, err = o.connect(); err != nil {
+  if conn, err = connect(o); err != nil {
     return client, err
   }
 
   client.conn = conn
   client.enc = xml.NewEncoder(client.conn)
   client.dec = xml.NewDecoder(client.conn)
+  client.domain = strings.Split(strings.Split(o.User, "@")[1], "/")[0]
+  user = strings.Split(o.User, "@")[0]
 
   if sf, err = client.startStream(); err != nil {
     return client, err
@@ -118,8 +141,11 @@ func (o *Options) NewClient() (*Client, error) {
   for _, mechanism := range sf.Mechanism.Mechanism {
     switch mechanism {
     case "PLAIN":
-      authBase64 = []byte(fmt.Sprintf("%s%s%s%s", BINARY_SALS, "zeus", BINARY_SALS, "totvs@123"))
-      fmt.Fprintf(client.conn, fmt.Sprintf("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' xmlns:ga='http://www.google.com/talk/protocol/auth' ga:client-uses-full-bind-result='true'>%s</auth>", base64.StdEncoding.EncodeToString(authBase64)))
+      authBase64 = []byte(fmt.Sprintf("%s%s%s%s", BINARY_SALS, user, BINARY_SALS, o.Password))
+      if _, err = client.conn.Write([]byte(fmt.Sprintf("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' xmlns:ga='http://www.google.com/talk/protocol/auth' ga:client-uses-full-bind-result='true'>%s</auth>",  base64.StdEncoding.EncodeToString(authBase64)))); err != nil {
+	return client, err
+      }
+      //fmt.Fprintf(client.conn, fmt.Sprintf("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' xmlns:ga='http://www.google.com/talk/protocol/auth' ga:client-uses-full-bind-result='true'>%s</auth>", base64.StdEncoding.EncodeToString(authBase64)))
       break
     }
   }
@@ -144,10 +170,6 @@ func (o *Options) NewClient() (*Client, error) {
 
   fmt.Println(iq)
   return new(Client), nil
-}
-
-func (c *Client) init(o *Options) error {
-  return nil
 }
 
 func (c *Client) startTLSStream(sf *streamFeatures) (*streamFeatures, error) {
@@ -224,7 +246,10 @@ func (c *Client) startStream() (*streamFeatures, error) {
   if stream, err = utils.MarshalWithOutEndTag(Stream{XMLNSStream: XML_STREAM, XMLNS: XML_CLIENT, To: "localhost", Language: "en", Version: VERSION}, true); err != nil {
     return sf, err
   }
-  fmt.Fprintf(c.conn, string(stream))
+
+  if _, err = c.conn.Write(stream); err != nil {
+    return sf, err
+  }
 
   if se, err = startStream(c.dec); err != nil {
     return sf, err
