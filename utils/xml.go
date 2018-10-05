@@ -3,6 +3,7 @@ package utils
 import (
   "encoding/xml"
   "regexp"
+  "bytes"
 )
 
 const (
@@ -28,7 +29,7 @@ func MarshalSelfClosingTag(i interface{}) ([]byte, error) {
   return dst, nil
 }
 
-func MarshalWithOutEndTag(i interface{}) ([]byte, error) {
+func MarshalWithOutEndTag(i interface{}, replaceQuotes bool) ([]byte, error) {
   var (
     body []byte
     err  error
@@ -42,6 +43,6 @@ func MarshalWithOutEndTag(i interface{}) ([]byte, error) {
 
   r = regexp.MustCompile(WITHOUT_ENT_TAG)
 
-  dst = r.ReplaceAll(body, []byte(""))
+  dst = bytes.Replace(r.ReplaceAll(body, []byte("")), []byte("\""), []byte("'"), -1)
   return dst, nil
 }
