@@ -17,6 +17,7 @@ import (
 
 const (
   nsSASL	    = "urn:ietf:params:xml:ns:xmpp-sasl"
+  nsCLIENT	    = "jabber:client"
   PLAIN		    = "PLAIN"
   BINARY_SALS	    = "\x00"
   XML_STREAM	    = "http://etherx.jabber.org/streams"
@@ -290,9 +291,17 @@ func next(dec *xml.Decoder) (xml.Name, interface{}, error) {
     return se.Name, nv, err
   }
 
+  fmt.Println(se.Name.Space, se.Name.Local)
+
   switch fmt.Sprintf("%s %s", se.Name.Space, se.Name.Local) {
   case fmt.Sprintf("%s success", nsSASL):
     nv = &saslSuccess{}
+  case fmt.Sprintf("%s message", nsCLIENT):
+    nv = &Message{}
+  case fmt.Sprintf("%s presence", nsCLIENT):
+    nv = &clientPresence{}
+  case fmt.Sprintf("%s iq", nsCLIENT):
+    nv = &clientIQ{}
   }
 
   if err = dec.DecodeElement(nv, &se); err != nil {

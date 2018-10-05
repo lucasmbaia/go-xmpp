@@ -78,3 +78,40 @@ type bindBind struct {
   Resource string
   Jid      string `xml:"jid"`
 }
+
+type Message struct {
+  XMLName xml.Name  `xml:"message"`
+  XMLNSGA string    `xml:"xmlns:ga,attr,omitempty"`
+  To	  string    `xml:"to,attr,omitempty"`
+  From	  string    `xml:"from,attr,omitempty"`
+  Type	  string    `xml:"type,attr,omitempty"`
+  ID	  string    `xml:"id,attr,omitempty"`
+  Subject string    `xml:"subject,omitempty"`
+  Body	  string    `xml:"body,omitempty"`
+}
+
+type clientPresence struct {
+  XMLName xml.Name `xml:"jabber:client presence"`
+  From    string   `xml:"from,attr"`
+  ID      string   `xml:"id,attr"`
+  To      string   `xml:"to,attr"`
+  Type    string   `xml:"type,attr"` // error, probe, subscribe, subscribed, unavailable, unsubscribe, unsubscribed
+  Lang    string   `xml:"lang,attr"`
+
+  Show     string `xml:"show"`   // away, chat, dnd, xa
+  Status   string `xml:"status"` // sb []clientText
+  Priority string `xml:"priority,attr"`
+  Error    *clientError
+}
+
+type clientQuery struct {
+  Item []rosterItem
+}
+
+type rosterItem struct {
+  XMLName      xml.Name `xml:"jabber:iq:roster item"`
+  Jid          string   `xml:",attr"`
+  Name         string   `xml:",attr"`
+  Subscription string   `xml:",attr"`
+  Group        []string
+}

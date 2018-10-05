@@ -1,12 +1,13 @@
 package xmpp
 
 import (
+  "context"
   "testing"
-  "fmt"
+  //"fmt"
 )
 
 func Test_NewClient(t *testing.T) {
-  var block = make(chan bool, 1)
+  var ctx = context.Background()
 
   var options = Options{
     Host:	"xmpp",
@@ -16,6 +17,6 @@ func Test_NewClient(t *testing.T) {
     Password:	"totvs@123",
   }
 
-  fmt.Println(NewClient(options))
-  <-block
+  conn, _ := NewClient(options)
+  conn.Receiver(ctx, RecvOptions{})
 }
