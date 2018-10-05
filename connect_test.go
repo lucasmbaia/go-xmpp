@@ -6,6 +6,8 @@ import (
 )
 
 func Test_NewClient(t *testing.T) {
+  var block = make(chan bool, 1)
+
   var options = Options{
     Host:	"xmpp",
     Port:	"5222",
@@ -15,4 +17,5 @@ func Test_NewClient(t *testing.T) {
   }
 
   fmt.Println(NewClient(options))
+  <-block
 }

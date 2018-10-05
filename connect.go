@@ -10,7 +10,6 @@ import (
   "encoding/base64"
   "encoding/binary"
   "strings"
-  //"errors"
   "encoding/xml"
 
   "github.com/lucasmbaia/go-xmpp/utils"
@@ -63,9 +62,11 @@ ujeC1Vs6ItWJ/hB/2qnzqZBqdddY1FwB+ziEjYoW914svBJYxwLk5HbXNV+CpxEh
 
 type Client struct {
   conn	  net.Conn
-  domain  string
   enc	  *xml.Encoder
   dec	  *xml.Decoder
+
+  domain  string
+  jid	  string
 }
 
 type Options struct {
@@ -116,8 +117,10 @@ func NewClient(o Options) (*Client, error) {
     sf		= new(streamFeatures)
     authBase64	[]byte
     user	string
-    //name	xml.Name
-    //val		interface{}
+    name	xml.Name
+    val		interface{}
+    iq		clientIQ
+    cookie	Cookie
   )
 
   if conn, err = connect(o); err != nil {
@@ -150,26 +153,42 @@ func NewClient(o Options) (*Client, error) {
     }
   }
 
-  if _, _, err = next(client.dec); err != nil {
+  if name, val, err = next(client.dec); err != nil {
     return client, err
+  }
+
+  switch v := val.(type) {
+  case *saslSuccess:
+  case *saslFailure:
+    var msg = v.Text
+    if msg == "" {
+      msg = v.Any.Local
+    }
+
+    return client, errors.New(fmt.Sprintf("Authenticate failure: %s", msg))
+  default:
+    return client, errors.New(fmt.Sprintf("expected <success> or <failure>, got <%s> in %s", name.Local, name.Space))
   }
 
   if _, err = client.startStream(); err != nil {
     return client, err
   }
 
-  cookie := getCookie()
-
+  cookie = getCookie()
   fmt.Fprintf(client.conn, fmt.Sprintf("<iq type='set' id='%x'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></iq>", cookie))
-
-  var iq clientIQ
 
   if err = client.dec.DecodeElement(&iq, nil); err != nil {
     return client, err
   }
 
-  fmt.Println(iq)
-  return new(Client), nil
+  client.jid = iq.Bind.Jid
+
+  if _, err = client.conn.Write([]byte(fmt.Sprintf("<iq type='set' id='%x'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>", cookie))); err != nil {
+    return client, err
+  }
+  fmt.Fprintf(client.conn, fmt.Sprintf("<presence><show/></presence>"))
+
+  return client, nil
 }
 
 func (c *Client) startTLSStream(sf *streamFeatures) (*streamFeatures, error) {
@@ -214,22 +233,16 @@ func (c *Client) startTLSStream(sf *streamFeatures) (*streamFeatures, error) {
   tlsconn = tls.Client(c.conn, &configTLS)
 
   if err = tlsconn.Handshake(); err != nil {
-    fmt.Println("DEU BOSTA AQUI")
     return sf, err
   }
 
   if err = tlsconn.VerifyHostname("localhost"); err != nil {
-    fmt.Println("DEU MERDA AQUI")
     return sf, err
   }
 
   c.conn = tlsconn
-  fmt.Println("PORRA")
 
   return c.startStream()
-  //fmt.Fprintf(c.conn, "<stream:stream to='localhost' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' xml:lang='en' version='1.0'>")
-
-  //return sf, err
 }
 
 func (c *Client) startStream() (*streamFeatures, error) {

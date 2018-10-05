@@ -48,6 +48,12 @@ type saslSuccess struct {
   XMLName xml.Name  `xml:"urn:ietf:params:xml:ns:xmpp-sasl success"`
 }
 
+type saslFailure struct {
+  XMLName xml.Name `xml:"urn:ietf:params:xml:ns:xmpp-sasl failure"`
+  Any     xml.Name `xml:",any"`
+  Text    string   `xml:"text"`
+}
+
 type clientIQ struct {
   XMLName xml.Name `xml:"jabber:client iq"`
   From    string   `xml:"from,attr"`
