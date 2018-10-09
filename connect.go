@@ -1,32 +1,32 @@
 package xmpp
 
 import (
-  "fmt"
-  "net"
-  "errors"
-  "crypto/tls"
-  "crypto/x509"
-  "crypto/rand"
-  "encoding/base64"
-  "encoding/binary"
-  "strings"
-  "encoding/xml"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/xml"
+	"errors"
+	"fmt"
+	"net"
+	"strings"
 
-  "github.com/lucasmbaia/go-xmpp/utils"
+	"github.com/lucasmbaia/go-xmpp/utils"
 )
 
 const (
-  nsSASL	    = "urn:ietf:params:xml:ns:xmpp-sasl"
-  nsCLIENT	    = "jabber:client"
-  PLAIN		    = "PLAIN"
-  BINARY_SALS	    = "\x00"
-  XML_STREAM	    = "http://etherx.jabber.org/streams"
-  XML_CLIENT	    = "jabber:client"
-  XML_TLS	    = "urn:ietf:params:xml:ns:xmpp-tls"
-  VERSION	    = "1.0"
-  XMPP_DEFAULT_PORT = ":5222"
-  STREAM	    = "stream"
-  rootPEM	    = `
+	nsSASL            = "urn:ietf:params:xml:ns:xmpp-sasl"
+	nsCLIENT          = "jabber:client"
+	PLAIN             = "PLAIN"
+	BINARY_SALS       = "\x00"
+	XML_STREAM        = "http://etherx.jabber.org/streams"
+	XML_CLIENT        = "jabber:client"
+	XML_TLS           = "urn:ietf:params:xml:ns:xmpp-tls"
+	VERSION           = "1.0"
+	XMPP_DEFAULT_PORT = ":5222"
+	STREAM            = "stream"
+	rootPEM           = `
 -----BEGIN CERTIFICATE-----
 MIIFnDCCA4SgAwIBAgIJAJrQSXXz8sTrMA0GCSqGSIb3DQEBCwUAMGMxCzAJBgNV
 BAYTAkZSMQ4wDAYDVQQIDAVQYXJpczEOMAwGA1UEBwwFUGFyaXMxEzARBgNVBAoM
@@ -62,269 +62,271 @@ ujeC1Vs6ItWJ/hB/2qnzqZBqdddY1FwB+ziEjYoW914svBJYxwLk5HbXNV+CpxEh
 )
 
 type Client struct {
-  conn	  net.Conn
-  enc	  *xml.Encoder
-  dec	  *xml.Decoder
+	conn net.Conn
+	enc  *xml.Encoder
+	dec  *xml.Decoder
 
-  domain  string
-  jid	  string
+	domain string
+	jid    string
 }
 
 type Options struct {
-  Host	    string
-  Port	    string
-  User	    string
-  Password  string
-  Mechanism string
+	Host      string
+	Port      string
+	User      string
+	Password  string
+	Mechanism string
 }
 
 type Cookie uint64
 
 func getCookie() Cookie {
-  var buf [8]byte
-  if _, err := rand.Reader.Read(buf[:]); err != nil {
-    panic("Failed to read random bytes: " + err.Error())
-  }
-  return Cookie(binary.LittleEndian.Uint64(buf[:]))
+	var buf [8]byte
+	if _, err := rand.Reader.Read(buf[:]); err != nil {
+		panic("Failed to read random bytes: " + err.Error())
+	}
+	return Cookie(binary.LittleEndian.Uint64(buf[:]))
 }
 
 func connect(o Options) (net.Conn, error) {
-  var coon net.Conn
+	var coon net.Conn
 
-  if o.User == "" || o.Password == "" {
-    return coon, errors.New("The Option's user and password is required")
-  }
+	if o.User == "" || o.Password == "" {
+		return coon, errors.New("The Option's user and password is required")
+	}
 
-  if !strings.Contains(o.User, "@") {
-    return coon, errors.New("The format of user is equal the JID format \"user@domain/Resource\"")
-  }
+	if !strings.Contains(o.User, "@") {
+		return coon, errors.New("The format of user is equal the JID format \"user@domain/Resource\"")
+	}
 
-  if o.Host == "" {
-    return coon, errors.New("The Option's host is required")
-  }
+	if o.Host == "" {
+		return coon, errors.New("The Option's host is required")
+	}
 
-  if o.Port == "" {
-    o.Port = XMPP_DEFAULT_PORT
-  }
+	if o.Port == "" {
+		o.Port = XMPP_DEFAULT_PORT
+	}
 
-  return net.Dial("tcp", fmt.Sprintf("%s:%s", o.Host, o.Port))
+	return net.Dial("tcp", fmt.Sprintf("%s:%s", o.Host, o.Port))
 }
 
 func NewClient(o Options) (*Client, error) {
-  var (
-    client	= new(Client)
-    err		error
-    conn	net.Conn
-    sf		= new(streamFeatures)
-    authBase64	[]byte
-    user	string
-    name	xml.Name
-    val		interface{}
-    iq		clientIQ
-    cookie	Cookie
-  )
+	var (
+		client     = new(Client)
+		err        error
+		conn       net.Conn
+		sf         = new(streamFeatures)
+		authBase64 []byte
+		user       string
+		name       xml.Name
+		val        interface{}
+		iq         clientIQ
+		cookie     Cookie
+	)
 
-  if conn, err = connect(o); err != nil {
-    return client, err
-  }
+	if conn, err = connect(o); err != nil {
+		return client, err
+	}
 
-  client.conn = conn
-  client.enc = xml.NewEncoder(client.conn)
-  client.dec = xml.NewDecoder(client.conn)
-  client.domain = strings.Split(strings.Split(o.User, "@")[1], "/")[0]
-  user = strings.Split(o.User, "@")[0]
+	client.conn = conn
+	client.enc = xml.NewEncoder(client.conn)
+	client.dec = xml.NewDecoder(client.conn)
+	client.domain = strings.Split(strings.Split(o.User, "@")[1], "/")[0]
+	user = strings.Split(o.User, "@")[0]
 
-  if sf, err = client.startStream(); err != nil {
-    return client, err
-  }
+	if sf, err = client.startStream(); err != nil {
+		return client, err
+	}
 
-  if sf, err = client.startTLSStream(sf); err != nil {
-    return client, err
-  }
+	if sf, err = client.startTLSStream(sf); err != nil {
+		return client, err
+	}
 
-  for _, mechanism := range sf.Mechanism.Mechanism {
-    switch mechanism {
-    case "PLAIN":
-      authBase64 = []byte(fmt.Sprintf("%s%s%s%s", BINARY_SALS, user, BINARY_SALS, o.Password))
-      if _, err = client.conn.Write([]byte(fmt.Sprintf("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' xmlns:ga='http://www.google.com/talk/protocol/auth' ga:client-uses-full-bind-result='true'>%s</auth>",  base64.StdEncoding.EncodeToString(authBase64)))); err != nil {
-	return client, err
-      }
-      //fmt.Fprintf(client.conn, fmt.Sprintf("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' xmlns:ga='http://www.google.com/talk/protocol/auth' ga:client-uses-full-bind-result='true'>%s</auth>", base64.StdEncoding.EncodeToString(authBase64)))
-      break
-    }
-  }
+	for _, mechanism := range sf.Mechanism.Mechanism {
+		switch mechanism {
+		case "PLAIN":
+			authBase64 = []byte(fmt.Sprintf("%s%s%s%s", BINARY_SALS, user, BINARY_SALS, o.Password))
+			if _, err = client.conn.Write([]byte(fmt.Sprintf("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' xmlns:ga='http://www.google.com/talk/protocol/auth' ga:client-uses-full-bind-result='true'>%s</auth>", base64.StdEncoding.EncodeToString(authBase64)))); err != nil {
+				return client, err
+			}
+			//fmt.Fprintf(client.conn, fmt.Sprintf("<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN' xmlns:ga='http://www.google.com/talk/protocol/auth' ga:client-uses-full-bind-result='true'>%s</auth>", base64.StdEncoding.EncodeToString(authBase64)))
+			break
+		}
+	}
 
-  if name, val, err = next(client.dec); err != nil {
-    return client, err
-  }
+	if name, val, err = next(client.dec); err != nil {
+		return client, err
+	}
 
-  switch v := val.(type) {
-  case *saslSuccess:
-  case *saslFailure:
-    var msg = v.Text
-    if msg == "" {
-      msg = v.Any.Local
-    }
+	switch v := val.(type) {
+	case *saslSuccess:
+	case *saslFailure:
+		var msg = v.Text
+		if msg == "" {
+			msg = v.Any.Local
+		}
 
-    return client, errors.New(fmt.Sprintf("Authenticate failure: %s", msg))
-  default:
-    return client, errors.New(fmt.Sprintf("expected <success> or <failure>, got <%s> in %s", name.Local, name.Space))
-  }
+		return client, errors.New(fmt.Sprintf("Authenticate failure: %s", msg))
+	default:
+		return client, errors.New(fmt.Sprintf("expected <success> or <failure>, got <%s> in %s", name.Local, name.Space))
+	}
 
-  if _, err = client.startStream(); err != nil {
-    return client, err
-  }
+	if _, err = client.startStream(); err != nil {
+		return client, err
+	}
 
-  cookie = getCookie()
-  fmt.Fprintf(client.conn, fmt.Sprintf("<iq type='set' id='%x'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></iq>", cookie))
+	cookie = getCookie()
+	fmt.Fprintf(client.conn, fmt.Sprintf("<iq type='set' id='%x'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></iq>", cookie))
 
-  if err = client.dec.DecodeElement(&iq, nil); err != nil {
-    return client, err
-  }
+	if err = client.dec.DecodeElement(&iq, nil); err != nil {
+		return client, err
+	}
 
-  client.jid = iq.Bind.Jid
+	client.jid = iq.Bind.Jid
 
-  if _, err = client.conn.Write([]byte(fmt.Sprintf("<iq type='set' id='%x'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>", cookie))); err != nil {
-    return client, err
-  }
-  fmt.Fprintf(client.conn, fmt.Sprintf("<presence><show/></presence>"))
+	if _, err = client.conn.Write([]byte(fmt.Sprintf("<iq type='set' id='%x'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>", cookie))); err != nil {
+		return client, err
+	}
+	fmt.Fprintf(client.conn, fmt.Sprintf("<presence><show/></presence>"))
 
-  return client, nil
+	return client, nil
 }
 
 func (c *Client) startTLSStream(sf *streamFeatures) (*streamFeatures, error) {
-  /*if sf.TLS == nil {
-    return sf, nil
-  }
+	/*if sf.TLS == nil {
+	    return sf, nil
+	  }
 
-  if sf.TLS.Required == nil {
-    return sf, nil
-  }*/
+	  if sf.TLS.Required == nil {
+	    return sf, nil
+	  }*/
 
-  var (
-    err	      error
-    configTLS tls.Config
-    tlsconn   *tls.Conn
-    proceed   tlsProceed
-    certs     = x509.NewCertPool()
-    ok	      bool
-    //xtls      []byte
-  )
+	var (
+		err       error
+		configTLS tls.Config
+		tlsconn   *tls.Conn
+		proceed   tlsProceed
+		certs     = x509.NewCertPool()
+		ok        bool
+		//xtls      []byte
+	)
 
-  /*if xtls, err = utils.MarshalSelfClosingTag(startTLS{XMLNS: XML_TLS}); err != nil {
-    return sf, err
-  }*/
+	/*if xtls, err = utils.MarshalSelfClosingTag(startTLS{XMLNS: XML_TLS}); err != nil {
+	  return sf, err
+	}*/
 
-  fmt.Fprintf(c.conn, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>")
-  /*if err = c.enc.Encode(&xtls); err != nil {
-    return sf, err
-  }*/
+	fmt.Fprintf(c.conn, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>")
+	/*if err = c.enc.Encode(&xtls); err != nil {
+	  return sf, err
+	}*/
 
-  if err = c.dec.DecodeElement(&proceed, nil); err != nil {
-    return sf, err
-  }
+	if err = c.dec.DecodeElement(&proceed, nil); err != nil {
+		return sf, err
+	}
 
-  if ok = certs.AppendCertsFromPEM([]byte(rootPEM)); !ok {
-    return sf, errors.New("Failed to parse root certificate")
-  }
+	if ok = certs.AppendCertsFromPEM([]byte(rootPEM)); !ok {
+		return sf, errors.New("Failed to parse root certificate")
+	}
 
-  configTLS.ServerName = "localhost"
-  configTLS.InsecureSkipVerify = false
-  configTLS.RootCAs = certs
-  tlsconn = tls.Client(c.conn, &configTLS)
+	configTLS.ServerName = "localhost"
+	configTLS.InsecureSkipVerify = false
+	configTLS.RootCAs = certs
+	tlsconn = tls.Client(c.conn, &configTLS)
 
-  if err = tlsconn.Handshake(); err != nil {
-    return sf, err
-  }
+	if err = tlsconn.Handshake(); err != nil {
+		return sf, err
+	}
 
-  if err = tlsconn.VerifyHostname("localhost"); err != nil {
-    return sf, err
-  }
+	if err = tlsconn.VerifyHostname("localhost"); err != nil {
+		return sf, err
+	}
 
-  c.conn = tlsconn
+	c.conn = tlsconn
 
-  return c.startStream()
+	return c.startStream()
 }
 
 func (c *Client) startStream() (*streamFeatures, error) {
-  var (
-    stream  []byte
-    err	    error
-    sf	    = new(streamFeatures)
-    se	    xml.StartElement
-  )
+	var (
+		stream []byte
+		err    error
+		sf     = new(streamFeatures)
+		se     xml.StartElement
+	)
 
-  c.dec = xml.NewDecoder(c.conn)
-  c.enc = xml.NewEncoder(c.conn)
+	c.dec = xml.NewDecoder(c.conn)
+	c.enc = xml.NewEncoder(c.conn)
 
-  if stream, err = utils.MarshalWithOutEndTag(Stream{XMLNSStream: XML_STREAM, XMLNS: XML_CLIENT, To: "localhost", Language: "en", Version: VERSION}, true); err != nil {
-    return sf, err
-  }
+	if stream, err = utils.MarshalWithOutEndTag(Stream{XMLNSStream: XML_STREAM, XMLNS: XML_CLIENT, To: "localhost", Language: "en", Version: VERSION}, true); err != nil {
+		return sf, err
+	}
 
-  if _, err = c.conn.Write(stream); err != nil {
-    return sf, err
-  }
+	if _, err = c.conn.Write(stream); err != nil {
+		return sf, err
+	}
 
-  if se, err = startStream(c.dec); err != nil {
-    return sf, err
-  }
+	if se, err = startStream(c.dec); err != nil {
+		return sf, err
+	}
 
-  if se.Name.Local != STREAM {
-    return sf, fmt.Errorf("expected <stream> but got <%v> in %v", se.Name.Local, se.Name.Space)
-  }
+	if se.Name.Local != STREAM {
+		return sf, fmt.Errorf("expected <stream> but got <%v> in %v", se.Name.Local, se.Name.Space)
+	}
 
-  if err = c.dec.DecodeElement(sf, nil); err != nil {
-    return sf, err
-  }
+	if err = c.dec.DecodeElement(sf, nil); err != nil {
+		return sf, err
+	}
 
-  return sf, nil
+	return sf, nil
 }
 
 func next(dec *xml.Decoder) (xml.Name, interface{}, error) {
-  var (
-    se	xml.StartElement
-    err	error
-    nv	interface{}
-  )
+	var (
+		se  xml.StartElement
+		err error
+		nv  interface{}
+	)
 
-  if se, err = startStream(dec); err != nil {
-    return se.Name, nv, err
-  }
+	if se, err = startStream(dec); err != nil {
+		return se.Name, nv, err
+	}
 
-  fmt.Println(se.Name.Space, se.Name.Local)
+	fmt.Println(se.Name.Space, se.Name.Local)
 
-  switch fmt.Sprintf("%s %s", se.Name.Space, se.Name.Local) {
-  case fmt.Sprintf("%s success", nsSASL):
-    nv = &saslSuccess{}
-  case fmt.Sprintf("%s message", nsCLIENT):
-    nv = &Message{}
-  case fmt.Sprintf("%s presence", nsCLIENT):
-    nv = &clientPresence{}
-  case fmt.Sprintf("%s iq", nsCLIENT):
-    nv = &clientIQ{}
-  }
+	switch fmt.Sprintf("%s %s", se.Name.Space, se.Name.Local) {
+	case fmt.Sprintf("%s success", nsSASL):
+		nv = &saslSuccess{}
+	case fmt.Sprintf("%s message", nsCLIENT):
+		nv = &Message{}
+	case fmt.Sprintf("%s presence", nsCLIENT):
+		nv = &clientPresence{}
+	case fmt.Sprintf("%s iq", nsCLIENT):
+		nv = &clientIQ{}
+	default:
+		return se.Name, nil, errors.New(fmt.Sprintf("unexpected XMPP message %s <%s>", se.Name.Space, se.Name.Local))
+	}
 
-  if err = dec.DecodeElement(nv, &se); err != nil {
-    return se.Name, nv, err
-  }
+	if err = dec.DecodeElement(nv, &se); err != nil {
+		return se.Name, nv, err
+	}
 
-  return se.Name, nv, nil
+	return se.Name, nv, nil
 }
 
 func startStream(dec *xml.Decoder) (xml.StartElement, error) {
-  var (
-    t	xml.Token
-    err	error
-  )
+	var (
+		t   xml.Token
+		err error
+	)
 
-  for {
-    if t, err = dec.Token(); err != nil {
-      return xml.StartElement{}, err
-    }
+	for {
+		if t, err = dec.Token(); err != nil {
+			return xml.StartElement{}, err
+		}
 
-    switch t := t.(type) {
-    case xml.StartElement:
-      return t, nil
-    }
-  }
+		switch t := t.(type) {
+		case xml.StartElement:
+			return t, nil
+		}
+	}
 }
