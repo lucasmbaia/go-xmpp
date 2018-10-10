@@ -11,7 +11,7 @@ func Test_NewClient(t *testing.T) {
 	var ctx = context.Background()
 
 	var options = Options{
-		Host:      "192.168.204.131",
+		Host:      "172.16.95.179",
 		Port:      "5222",
 		Mechanism: PLAIN,
 		User:      "zeus@localhost",
@@ -24,7 +24,8 @@ func Test_NewClient(t *testing.T) {
 	fmt.Println(conn.Roster())
 	conn.DiscoItems("conference.localhost")
 	conn.DiscoItems("minions@conference.localhost")
-	conn.CreateRoom("chups@conference.localhost")
+	conn.MucPresence()
+	//conn.CreateRoom("chups@conference.localhost")
 
 	<-ctx.Done()
 }

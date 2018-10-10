@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 
 	"github.com/lucasmbaia/go-xmpp/utils"
 )
@@ -62,12 +63,15 @@ ujeC1Vs6ItWJ/hB/2qnzqZBqdddY1FwB+ziEjYoW914svBJYxwLk5HbXNV+CpxEh
 )
 
 type Client struct {
-	conn net.Conn
-	enc  *xml.Encoder
-	dec  *xml.Decoder
+	sync.RWMutex
 
-	domain string
-	jid    string
+	conn  net.Conn
+	enc   *xml.Encoder
+	dec   *xml.Decoder
+
+	domain	string
+	jid	string
+	user	string
 }
 
 type Options struct {
@@ -133,6 +137,7 @@ func NewClient(o Options) (*Client, error) {
 	client.dec = xml.NewDecoder(client.conn)
 	client.domain = strings.Split(strings.Split(o.User, "@")[1], "/")[0]
 	user = strings.Split(o.User, "@")[0]
+	client.user = user
 
 	if sf, err = client.startStream(); err != nil {
 		return client, err
@@ -299,7 +304,7 @@ func next(dec *xml.Decoder) (xml.Name, interface{}, error) {
 	case fmt.Sprintf("%s message", nsCLIENT):
 		nv = &Message{}
 	case fmt.Sprintf("%s presence", nsCLIENT):
-		nv = &clientPresence{}
+		nv = &Presence{}
 	case fmt.Sprintf("%s iq", nsCLIENT):
 		nv = &clientIQ{}
 	default:
