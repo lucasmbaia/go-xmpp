@@ -65,13 +65,13 @@ ujeC1Vs6ItWJ/hB/2qnzqZBqdddY1FwB+ziEjYoW914svBJYxwLk5HbXNV+CpxEh
 type Client struct {
 	sync.RWMutex
 
-	conn  net.Conn
-	enc   *xml.Encoder
-	dec   *xml.Decoder
+	conn net.Conn
+	enc  *xml.Encoder
+	dec  *xml.Decoder
 
-	domain	string
-	jid	string
-	user	string
+	domain string
+	Jid    string
+	user   string
 }
 
 type Options struct {
@@ -187,7 +187,7 @@ func NewClient(o Options) (*Client, error) {
 		return client, err
 	}
 
-	client.jid = iq.Bind.Jid
+	client.Jid = iq.Bind.Jid
 
 	if _, err = client.conn.Write([]byte(fmt.Sprintf("<iq type='set' id='%x'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>", cookie))); err != nil {
 		return client, err
