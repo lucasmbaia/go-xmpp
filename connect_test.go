@@ -35,7 +35,7 @@ func Test_Docker(t *testing.T) {
 	var ctx = context.Background()
 
 	var options = Options{
-		Host:      "192.168.204.131",
+		Host:      "172.16.95.179",
 		Port:      "5222",
 		Mechanism: PLAIN,
 		User:      "zeus@localhost",
@@ -43,12 +43,13 @@ func Test_Docker(t *testing.T) {
 	}
 
 	message := func(i interface{}) {
-		fmt.Println(i)
+		v := i.(*ClientIQ)
+		fmt.Println(string(v.Query))
 	}
 
 	conn, _ := NewClient(options)
 	go conn.Receiver(ctx)
-	conn.RegisterHandler(MESSAGE_HANDLER, message)
+	conn.RegisterHandler(IQ_HANDLER, message)
 
 	time.Sleep(2 * time.Second)
 	fmt.Println(conn.Roster())
@@ -57,14 +58,7 @@ func Test_Docker(t *testing.T) {
 	conn.MucPresence("minions@conference.localhost")
 	time.Sleep(2 * time.Second)
 
-	iq, err := docker.GenerateImage(docker.Image{
-		From: conn.Jid,
-		To:   "minion-1@localhost/145197768943085423711250",
-		Path: "teste",
-		Name: "teste",
-		Key:  "teste",
-	})
-
+	iq, err := docker.NameContainers(conn.Jid, "minion-1@localhost/1190218011418995730013250")
 	fmt.Println(iq, err)
 
 	if err == nil {

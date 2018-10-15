@@ -71,7 +71,7 @@ type Client struct {
 
 	domain string
 	Jid    string
-	user   string
+	User   string
 }
 
 type Options struct {
@@ -124,7 +124,7 @@ func NewClient(o Options) (*Client, error) {
 		user       string
 		name       xml.Name
 		val        interface{}
-		iq         clientIQ
+		iq         ClientIQ
 		cookie     Cookie
 	)
 
@@ -137,7 +137,7 @@ func NewClient(o Options) (*Client, error) {
 	client.dec = xml.NewDecoder(client.conn)
 	client.domain = strings.Split(strings.Split(o.User, "@")[1], "/")[0]
 	user = strings.Split(o.User, "@")[0]
-	client.user = user
+	client.User = user
 
 	if sf, err = client.startStream(); err != nil {
 		return client, err
@@ -306,7 +306,7 @@ func next(dec *xml.Decoder) (xml.Name, interface{}, error) {
 	case fmt.Sprintf("%s presence", nsCLIENT):
 		nv = &Presence{}
 	case fmt.Sprintf("%s iq", nsCLIENT):
-		nv = &clientIQ{}
+		nv = &ClientIQ{}
 	default:
 		return se.Name, nil, errors.New(fmt.Sprintf("unexpected XMPP message %s <%s>", se.Name.Space, se.Name.Local))
 	}

@@ -80,7 +80,7 @@ func (c *Client) Receiver(ctx context.Context) {
 						}
 					}
 				}*/
-			case *clientIQ:
+			case *ClientIQ:
 				c.sendHandler(IQ_HANDLER, v)
 				/*if v.Type == "result" {
 					if err = xml.Unmarshal(v.Query, &q); err != nil {
@@ -177,7 +177,7 @@ func (c *Client) DiscoItems(to string) error {
 }
 
 func (c *Client) MucPresence(room string) error {
-	var body = fmt.Sprintf("<presence to='%s/%s' xml:lang='en'><x xmlns='http://jabber.org/protocol/muc'><history maxchars='0' /></x></presence>", room, c.user)
+	var body = fmt.Sprintf("<presence to='%s/%s' xml:lang='en'><x xmlns='http://jabber.org/protocol/muc'><history maxchars='0' /></x></presence>", room, c.User)
 
 	if _, err := c.conn.Write([]byte(body)); err != nil {
 		return err

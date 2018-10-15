@@ -54,7 +54,7 @@ type saslFailure struct {
   Text    string   `xml:"text"`
 }
 
-type clientIQ struct {
+type ClientIQ struct {
   XMLName xml.Name `xml:"jabber:client iq"`
   From    string   `xml:"from,attr"`
   ID      string   `xml:"id,attr"`
