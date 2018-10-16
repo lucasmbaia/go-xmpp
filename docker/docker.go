@@ -48,11 +48,19 @@ type Elements struct {
   ApplicationName string	`xml:"application-name,omitempty"`
   TotalContainers int		`xml:"total-containers,omitempty"`
   Cpus		  string	`xml:"cpus,omitempty"`
-  Memory	  int		`xml:"memory,omitempty"`
+  Memory	  string	`xml:"memory,omitempty"`
   BuildName	  string	`xml:"build-name,omitempty"`
   Tag		  string	`xml:"tag,omitempty"`
+  Image		  string	`xml:"image,omitempty"`
+  CreateImage	  bool		`xml:"create-image,omitempty"`
   Ports		  []Ports	`xml:"ports,omitempty"`
   Containers	  []Container	`xml:"containers,omitempty"`
+  Args		  []Args	`xml:"arg,omitempty"`
+}
+
+type Args struct {
+  Name	string  `xml:"name,attr,omitempty"`
+  Value	string	`xml:",chardata"`
 }
 
 type Ports struct {
@@ -82,11 +90,12 @@ type Action struct {
 }
 
 type Image struct {
-  To   string
-  From string
-  Path string
-  Name string
-  Key  string
+  To	    string
+  From	    string
+  Name	    string
+  BuildName string
+  Tag	    string
+  Path	    string
 }
 
 type Deploy struct {
@@ -94,11 +103,13 @@ type Deploy struct {
   From            string
   Customer        string
   ApplicationName string
-  TotalContainers int
+  Name		  string
   Cpus            string
-  Memory          int
+  Memory          string
   Ports           []Ports
-  Path            string
+  Args		  []Args
+  CreateImage	  bool
+  Image		  string
 }
 
 func init() {
@@ -194,9 +205,10 @@ func ActionContainer(action Action) (IQ, error) {
 
 func GenerateImage(image Image) (IQ, error) {
   var elements = Elements{
-    Path: image.Path,
-    Name: image.Name,
-    Key:  image.Key,
+    Name:	image.Name,
+    BuildName:	image.BuildName,
+    Tag:	image.Tag,
+    Path:	image.Path,
   }
 
   return request(image.From, image.To, GENERATE_IMAGE, elements)
@@ -220,13 +232,15 @@ func ExistsImage(image Image) (IQ, error) {
 
 func MasterDeploy(deploy Deploy) (IQ, error) {
   var elements = Elements{
-    Customer: deploy.Customer,
+    Customer:	      deploy.Customer,
     ApplicationName:  deploy.ApplicationName,
-    TotalContainers:  deploy.TotalContainers,
+    Name:	      deploy.Name,
     Cpus:	      deploy.Cpus,
     Memory:	      deploy.Memory,
     Ports:	      deploy.Ports,
-    Path:	      deploy.Path,
+    Args:	      deploy.Args,
+    Image:	      deploy.Image,
+    CreateImage:      deploy.CreateImage,
   }
 
   return request(deploy.From, deploy.To, MASTER_DEPLOY, elements)
@@ -234,9 +248,8 @@ func MasterDeploy(deploy Deploy) (IQ, error) {
 
 func AppendDeploy(deploy Deploy) (IQ, error) {
   var elements = Elements{
-    Customer: deploy.Customer,
+    Customer:	      deploy.Customer,
     ApplicationName:  deploy.ApplicationName,
-    TotalContainers:  deploy.TotalContainers,
   }
 
   return request(deploy.From, deploy.To, APPEND_DEPLOY, elements)
