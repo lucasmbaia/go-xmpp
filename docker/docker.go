@@ -7,15 +7,16 @@ import (
 )
 
 const (
-  GENERATE_IMAGE       = "generate-image"
-  LOAD_IMAGE           = "load-image"
-  EXISTS_IMAGE         = "exists-image"
-  MASTER_DEPLOY        = "master-deploy"
-  APPEND_DEPLOY        = "append-deploy"
-  NAME_CONTAINERS      = "name-containers"
-  TOTAL_CONTAINERS     = "total-containers"
-  OPERATION_CONTAINERS = "operation-containers"
-  EMPTY_STR            = ""
+  GENERATE_IMAGE	= "generate-image"
+  LOAD_IMAGE		= "load-image"
+  EXISTS_IMAGE		= "exists-image"
+  MASTER_DEPLOY		= "master-deploy"
+  APPEND_DEPLOY		= "append-deploy"
+  NAME_CONTAINERS	= "name-containers"
+  TOTAL_CONTAINERS	= "total-containers"
+  OPERATION_CONTAINERS	= "operation-containers"
+  REMOVE_CONTAINER	= "remove-container"
+  EMPTY_STR		= ""
 )
 
 var (
@@ -24,12 +25,20 @@ var (
 )
 
 type IQ struct {
-  XMLName xml.Name `xml:"iq"`
-  From    string   `xml:"from,attr,omitempty"`
-  To      string   `xml:"to,attr,omitempty"`
-  Type    string   `xml:"type,attr,omitempty"`
-  ID      string   `xml:"id,attr,omitempty"`
+  XMLName xml.Name  `xml:"iq"`
+  From    string    `xml:"from,attr,omitempty"`
+  To      string    `xml:"to,attr,omitempty"`
+  Type    string    `xml:"type,attr,omitempty"`
+  ID      string    `xml:"id,attr,omitempty"`
+  Error	  *IQError
   Query   interface{}
+}
+
+type IQError struct {
+  XMLName xml.Name  `xml:"jabber:client error"`
+  Code    string    `xml:"code,attr,omitempty"`
+  Type    string    `xml:"type,attr,omitempty"`
+  Text    string    `xml:"text,omitempty"`
 }
 
 type QueryDocker struct {
@@ -201,6 +210,14 @@ func ActionContainer(action Action) (IQ, error) {
   }
 
   return request(action.From, action.To, OPERATION_CONTAINERS, elements)
+}
+
+func RemoveContainer(action Action) (IQ, error) {
+  var elements = Elements{
+    Name: action.Container,
+  }
+
+  return request(action.From, action.To, REMOVE_CONTAINER, elements)
 }
 
 func GenerateImage(image Image) (IQ, error) {

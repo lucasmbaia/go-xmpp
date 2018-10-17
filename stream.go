@@ -61,8 +61,15 @@ type ClientIQ struct {
   To      string   `xml:"to,attr"`
   Type    string   `xml:"type,attr"` // error, get, result, set
   Query   []byte   `xml:",innerxml"`
-  Error   clientError
+  Error   *IQError
   Bind    bindBind
+}
+
+type IQError struct {
+  XMLName xml.Name  `xml:"jabber:client error"`
+  Code    string    `xml:"code,attr,omitempty"`
+  Type    string    `xml:"type,attr,omitempty"`
+  Text    string    `xml:"text,omitempty"`
 }
 
 type clientError struct {

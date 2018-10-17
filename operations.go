@@ -49,8 +49,6 @@ func (c *Client) Receiver(ctx context.Context) {
 			var (
 				val interface{}
 				err error
-				//q   = Query{}
-				//ok  bool
 			)
 
 			if _, val, err = next(c.dec); err != nil {
@@ -63,52 +61,8 @@ func (c *Client) Receiver(ctx context.Context) {
 				c.sendHandler(MESSAGE_HANDLER, v)
 			case *Presence:
 				c.sendHandler(PRESENCE_HANDLER, v)
-				/*if !reflect.DeepEqual(v.User, MucUser{}) && !strings.Contains(v.From, c.user) && strings.Contains(v.From, "minions@conference.localhost") {
-					for _, item := range v.User.Item {
-						if v.Type == "unavailable" {
-							c.Lock()
-							if _, ok := minions[item.Jid]; ok {
-								delete(minions, item.Jid)
-							}
-							c.Unlock()
-						} else {
-							c.Lock()
-							if _, ok := minions[item.Jid]; !ok {
-								minions[item.Jid] = Minions{}
-							}
-							c.Unlock()
-						}
-					}
-				}*/
 			case *ClientIQ:
 				c.sendHandler(IQ_HANDLER, v)
-				/*if v.Type == "result" {
-					if err = xml.Unmarshal(v.Query, &q); err != nil {
-						continue
-					}
-
-					switch q.XMLName.Space {
-					case JABBER_IQ_ROSTER:
-						var roster QueryRoster
-						if err = xml.Unmarshal(v.Query, &roster); err != nil {
-							continue
-						}
-
-						fmt.Println(roster)
-					case DISCO_ITEMS:
-						var di QueryDiscoItems
-						if err = xml.Unmarshal(v.Query, &di); err != nil {
-							continue
-						}
-
-						fmt.Println(di)
-					case JABBER_IQ_DOCKER:
-
-					}
-				}
-
-				fmt.Println(v)
-				fmt.Println(string(v.Query))*/
 			}
 		}
 	}()
@@ -119,7 +73,7 @@ func (c *Client) Receiver(ctx context.Context) {
 func (c *Client) sendHandler(plugin string, v interface{}) {
 	c.Lock()
 	if _, ok := handlers[plugin]; ok {
-		handlers[plugin](v)
+		go handlers[plugin](v)
 	}
 	c.Unlock()
 }
