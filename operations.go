@@ -140,6 +140,16 @@ func (c *Client) MucPresence(room string) error {
 	return nil
 }
 
+func (c *Client) SendPresenceMuc(to string) error {
+	var body = fmt.Sprintf("<presence xml:lang='en' to='%s' from='%s'><x xmlns='vcard-temp:x:update'/><x xmlns='http://jabber.org/protocol/muc#user'><item jid='%s' role='moderator' affiliation='owner'/></x></presence>", to, c.Jid, c.Jid)
+
+	if _, err := c.conn.Write([]byte(body)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) CreateRoom(name string) error {
 	var (
 		err  error
